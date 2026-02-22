@@ -3,6 +3,7 @@ const mercadopago = require("mercadopago");
 const axios = require("axios");
 
 const app = express();
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 mercadopago.configure({
@@ -10,104 +11,134 @@ mercadopago.configure({
 });
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-const CHANNEL_ID = process.env.GROUP_ID;
+const CHANNEL_ID = process.env.GROUP_ID; // tu canal privado
 
-// Página principal con botón de pago
+// 🔹 Página principal
 app.get("/", (req, res) => {
   res.send(`
-    <h1>SAG y SK - COMBINADA DEL DÍA</h1>
-    <h2>Precio: $5000</h2>
-    <button onclick="pagar()">Pagar ahora</button>
-
-    <script>
-      async function pagar() {
-        const res = await fetch("/crear-preferencia", { method: "POST" });
-        const data = await res.json();
-        window.location.href = data.link;
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Stake 10 + Combinada</title>
+    <style>
+      body {
+        font-family: Arial;
+        background: #f4f6fb;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
       }
-    </script>
+      .card {
+        background: white;
+        width: 400px;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        text-align: center;
+      }
+      h1 { margin-bottom: 10px; }
+      .price {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 20px 0;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        margin-top: 15px;
+      }
+      button {
+        width: 100%;
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 10px;
+        border: none;
+        background: linear-gradient(90deg, #6c63ff, #4e4bff);
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>STAKE 10 + COMBINADA</h1>
+      <div class="price">$5.000 ARS</div>
+      <form action="/crear-preferencia" method="POST">
+        <input type="text" name="nombre" placeholder="Tu nombre completo" required />
+        <button type="submit">Pagar ahora</button>
+      </form>
+    </div>
+  </body>
+  </html>
   `);
 });
 
-// Crear preferencia MercadoPago
+// 🔹 Crear preferencia MercadoPago
 app.post("/crear-preferencia", async (req, res) => {
   try {
 
     const preference = {
       items: [
         {
-          title: "COMBINADA DEL DÍA",
+          title: "Stake 10 + Combinada",
           unit_price: 5000,
           quantity: 1
         }
       ],
       back_urls: {
-        success: "https://sag-pagos-production.up.railway.app/gracias",
-        failure: "https://sag-pagos-production.up.railway.app",
-        pending: "https://sag-pagos-production.up.railway.app"
+        success: "https://sag-pagos-production.up.railway.app/success",
+        failure: "https://sag-pagos-production.up.railway.app"
       },
-      auto_return: "approved",
-      notification_url: "https://sag-pagos-production.up.railway.app/webhook"
+      auto_return: "approved"
     };
 
     const response = await mercadopago.preferences.create(preference);
 
-    res.json({ link: response.body.init_point });
+    res.redirect(response.body.init_point);
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.send("Error creando pago");
   }
 });
 
-// Variable temporal para guardar último link creado
-let ultimoLink = null;
-
-// Webhook MercadoPago
-app.post("/webhook", async (req, res) => {
+// 🔹 Cuando vuelve aprobado
+app.get("/success", async (req, res) => {
   try {
 
-    if (req.body.type === "payment") {
-
-      const payment = await mercadopago.payment.findById(req.body.data.id);
-
-      if (payment.body.status === "approved") {
-
-        const invite = await axios.post(
-          `https://api.telegram.org/bot${TELEGRAM_TOKEN}/createChatInviteLink`,
-          {
-            chat_id: CHANNEL_ID,
-            member_limit: 1
-          }
-        );
-
-        ultimoLink = invite.data.result.invite_link;
-
-        console.log("Link creado:", ultimoLink);
+    // Crear link único al canal
+    const invite = await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_TOKEN}/createChatInviteLink`,
+      {
+        chat_id: CHANNEL_ID,
+        member_limit: 1
       }
-    }
+    );
 
-    res.sendStatus(200);
+    const link = invite.data.result.invite_link;
+
+    res.send(`
+      <h1>✅ Pago aprobado</h1>
+      <h2>Accedé a tu canal privado:</h2>
+      <a href="${link}" style="
+        display:inline-block;
+        margin-top:20px;
+        padding:15px 25px;
+        background:#4e4bff;
+        color:white;
+        text-decoration:none;
+        border-radius:10px;
+        font-size:18px;">
+        Entrar al canal
+      </a>
+    `);
 
   } catch (error) {
-    console.log(error);
-    res.sendStatus(500);
+    res.send("Pago aprobado pero hubo error creando link.");
   }
-});
-
-// Página después del pago
-app.get("/gracias", (req, res) => {
-
-  if (!ultimoLink) {
-    return res.send("<h2>Procesando pago... refrescá en unos segundos.</h2>");
-  }
-
-  res.send(`
-    <h1>Pago aprobado ✅</h1>
-    <h2>Entrá a tu canal privado:</h2>
-    <a href="${ultimoLink}" target="_blank">
-      <button>Entrar al canal</button>
-    </a>
-  `);
 });
 
 app.listen(process.env.PORT || 3000);

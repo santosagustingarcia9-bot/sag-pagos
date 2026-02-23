@@ -1,44 +1,24 @@
 const express = require("express");
-const mercadopago = require("mercadopago");
-const axios = require("axios");
-
 const app = express();
-app.use(express.json());
-
-mercadopago.configure({
-  access_token: process.env.MP_ACCESS_TOKEN,
-});
 
 const PORT = process.env.PORT || 3000;
 
-// 🔎 Detectar país real por IP
-async function detectarPais(ip) {
-  try {
-    const response = await axios.get(`https://ipapi.co/${ip}/json/`);
-    return response.data.country_code || "AR";
-  } catch (err) {
-    return "AR";
-  }
-}
+app.get("/", (req, res) => {
 
-function obtenerPrecio(country) {
-  if (country === "US") {
-    return { price: 10, currency: "USD" };
-  }
-  if (country === "CL") {
-    return { price: 9000, currency: "CLP" };
-  }
-  return { price: 5000, currency: "ARS" };
-}
+  const country =
+    req.headers["cf-ipcountry"] ||
+    req.headers["x-vercel-ip-country"] ||
+    "AR";
 
-app.get("/", async (req, res) => {
+  const prices = {
+    AR: { amount: 5000, currency: "ARS", symbol: "$" },
+    US: { amount: 10, currency: "USD", symbol: "$" },
+    MX: { amount: 200, currency: "MXN", symbol: "$" },
+    ES: { amount: 9, currency: "EUR", symbol: "€" }
+  };
 
-  const ip =
-    req.headers["x-forwarded-for"]?.split(",")[0] ||
-    req.socket.remoteAddress;
-
-  const country = await detectarPais(ip);
-  const { price, currency } = obtenerPrecio(country);
+  const selected = prices[country] || prices["US"];
+  const flag = country.toLowerCase();
 
   res.send(`
 <!DOCTYPE html>
@@ -49,87 +29,113 @@ app.get("/", async (req, res) => {
 <title>SAG & SK - Pago</title>
 
 <style>
-body {
+body{
   margin:0;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:#f4f6f9;
+  background:#f2f3f7;
 }
-.container {
-  max-width:500px;
-  margin:30px auto;
+
+.container{
+  max-width:480px;
+  margin:40px auto;
   background:white;
-  border-radius:20px;
-  padding:30px;
-  box-shadow:0 15px 40px rgba(0,0,0,0.08);
+  border-radius:25px;
+  padding:35px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.08);
   text-align:center;
 }
-.brand {
+
+.brand{
   display:flex;
-  align-items:center;
   justify-content:center;
+  align-items:center;
   gap:15px;
-  margin-bottom:20px;
 }
-.brand img {
-  width:65px;
-  height:65px;
+
+.brand img{
+  width:70px;
+  height:70px;
   border-radius:50%;
+  object-fit:cover;
 }
-.verified {
+
+.verified{
   color:#16a34a;
   font-size:14px;
 }
-.title {
-  font-size:26px;
+
+.country{
+  margin-top:8px;
+  font-size:14px;
+  color:#555;
+}
+
+.flag{
+  width:22px;
+  vertical-align:middle;
+  margin-left:5px;
+}
+
+.title{
+  font-size:28px;
   font-weight:800;
-  margin:20px 0 10px;
+  margin:25px 0 10px;
 }
-.price {
-  font-size:38px;
+
+.price{
+  font-size:42px;
   font-weight:900;
-  margin-bottom:25px;
+  margin-bottom:30px;
 }
-.methods {
+
+.methods{
   display:flex;
   gap:15px;
-  margin-bottom:25px;
+  margin-bottom:30px;
 }
-.method {
+
+.method{
   flex:1;
   padding:20px;
   border:2px solid #e5e7eb;
-  border-radius:16px;
+  border-radius:18px;
   cursor:pointer;
+  transition:0.2s;
 }
-.method img {
-  height:28px;
+
+.method.active{
+  border-color:#6d28d9;
+  background:#f3f0ff;
 }
-.cards {
+
+.cards{
   display:flex;
   justify-content:center;
   gap:8px;
-  margin-top:10px;
+  margin-top:8px;
 }
-.pay-btn {
+
+.cards img{
+  height:22px;
+}
+
+.pay-btn{
   width:100%;
-  padding:16px;
+  padding:18px;
   border:none;
-  border-radius:14px;
+  border-radius:16px;
   background:linear-gradient(90deg,#6d28d9,#4f46e5);
   color:white;
-  font-size:17px;
-  font-weight:600;
+  font-size:18px;
+  font-weight:700;
   cursor:pointer;
+  box-shadow:0 10px 25px rgba(99,102,241,0.3);
 }
-.secure {
-  margin-top:15px;
-  color:#666;
+
+.secure{
+  margin-top:18px;
   font-size:14px;
-}
-.country {
-  font-size:13px;
-  color:#888;
-  margin-bottom:10px;
+  color:#555;
 }
 </style>
 </head>
@@ -139,78 +145,58 @@ body {
 <div class="container">
 
   <div class="brand">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4f/Iconic_image_of_a_crown.png">
+    <img src="https://i.imgur.com/2DhmtJ4.png">
     <div>
-      <h2>SAG & SK</h2>
+      <div style="font-weight:700;font-size:20px;">SAG & SK</div>
       <div class="verified">✔ Pronosticador verificado</div>
     </div>
   </div>
 
   <div class="country">
     País detectado: ${country}
+    <img class="flag" src="https://flagcdn.com/w40/${flag}.png">
   </div>
 
   <div class="title">COMBINADA DEL DÍA</div>
-  <div class="price">$ ${price} ${currency}</div>
+
+  <div class="price">
+    ${selected.symbol} ${selected.amount} ${selected.currency}
+  </div>
 
   <div class="methods">
-
-    <div class="method" onclick="window.location='/crear-preferencia?country=${country}'">
-      <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo.png">
-      <div>MercadoPago</div>
+    <div class="method active" onclick="selectMethod(this)">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/3/39/MercadoPago_logo.png" height="28">
+      <div style="margin-top:8px;font-weight:600;">MercadoPago</div>
     </div>
 
-    <div class="method" onclick="window.location='/crear-preferencia?country=${country}'">
-      <div>Tarjeta</div>
+    <div class="method" onclick="selectMethod(this)">
+      <div style="font-weight:600;">Tarjeta</div>
       <div class="cards">
         <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg">
         <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg">
         <img src="https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg">
       </div>
     </div>
-
   </div>
 
-  <button class="pay-btn" onclick="window.location='/crear-preferencia?country=${country}'">
-    Pagar ahora
-  </button>
+  <button class="pay-btn">Pagar ahora</button>
 
   <div class="secure">PAGOS SEGUROS</div>
 
 </div>
+
+<script>
+function selectMethod(el){
+  document.querySelectorAll('.method').forEach(m => m.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
 
 </body>
 </html>
 `);
 });
 
-app.get("/crear-preferencia", async (req, res) => {
-
-  const country = req.query.country || "AR";
-  const { price, currency } = obtenerPrecio(country);
-
-  try {
-    const preference = {
-      items: [{
-        title: "Combinada del Día",
-        quantity: 1,
-        unit_price: price,
-        currency_id: currency,
-      }],
-      back_urls: {
-        success: process.env.BASE_URL,
-      },
-    };
-
-    const response = await mercadopago.preferences.create(preference);
-    res.redirect(response.body.init_point);
-
-  } catch (error) {
-    console.log(error);
-    res.send("Error al crear el pago");
-  }
-});
-
 app.listen(PORT, () => {
-  console.log("Servidor funcionando");
+  console.log("Servidor corriendo en puerto " + PORT);
 });

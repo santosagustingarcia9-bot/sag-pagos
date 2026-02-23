@@ -8,9 +8,9 @@ mercadopago.configure({
   access_token: process.env.MP_ACCESS_TOKEN
 });
 
-// =========================
+// =====================
 // PAGINA PRINCIPAL
-// =========================
+// =====================
 
 app.get("/", (req, res) => {
   res.send(`
@@ -29,7 +29,7 @@ body {
 }
 
 .container {
-  max-width: 500px;
+  max-width: 520px;
   margin: 40px auto;
   background: white;
   border-radius: 20px;
@@ -41,7 +41,7 @@ body {
   display: flex;
   align-items: center;
   gap: 15px;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .brand img {
@@ -56,54 +56,60 @@ body {
 }
 
 .brand-text span {
-  color: #2ecc71;
+  color: #22c55e;
   font-size: 14px;
-  font-weight: 500;
 }
 
 h1 {
   font-size: 22px;
   margin-top: 20px;
-  margin-bottom: 10px;
-}
-
-.summary {
-  margin-top: 20px;
-  font-size: 15px;
 }
 
 .total {
-  margin-top: 25px;
   text-align: center;
+  margin: 25px 0;
 }
 
 .total span {
-  display: block;
-  font-size: 14px;
   color: gray;
+  font-size: 14px;
 }
 
 .total h2 {
-  font-size: 32px;
-  margin: 10px 0;
+  font-size: 34px;
+  margin: 8px 0;
 }
 
-button {
-  width: 100%;
-  padding: 15px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(90deg,#6366f1,#7c3aed);
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
+.pay-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
   margin-top: 20px;
+}
+
+.option {
+  padding: 15px;
+  border-radius: 14px;
+  border: 2px solid #eee;
+  cursor: pointer;
+  text-align: center;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.option:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 4px 15px rgba(124,58,237,0.2);
+}
+
+.option img {
+  width: 80px;
+  margin-bottom: 10px;
 }
 
 .secure {
   text-align: center;
-  margin-top: 15px;
+  margin-top: 20px;
   font-size: 13px;
   color: gray;
 }
@@ -115,7 +121,7 @@ button {
 <div class="container">
 
   <div class="brand">
-    <img src="https://i.ibb.co/3Jv3hYH/logo.png" alt="Logo">
+    <img src="https://i.ibb.co/3Jv3hYH/logo.png">
     <div class="brand-text">
       <h2>SAG & SK</h2>
       <span>✔ Pronosticador verificado</span>
@@ -124,18 +130,32 @@ button {
 
   <h1>COMBINADA DEL DÍA</h1>
 
-  <div class="summary">
-    Producto: Combinada Premium
-  </div>
-
   <div class="total">
     <span>Total a pagar</span>
     <h2>$ 5.000 ARS</h2>
   </div>
 
-  <form action="/crear-preferencia" method="POST">
-    <button type="submit">Pagar ahora</button>
-  </form>
+  <div class="pay-options">
+
+    <form action="/crear-preferencia" method="POST">
+      <button class="option" type="submit" style="all:unset; display:block; width:100%;">
+        <div class="option">
+          <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo.png">
+          MercadoPago
+        </div>
+      </button>
+    </form>
+
+    <form action="/crear-preferencia" method="POST">
+      <button class="option" type="submit" style="all:unset; display:block; width:100%;">
+        <div class="option">
+          <img src="https://logodownload.org/wp-content/uploads/2014/09/visa-logo-1.png">
+          Tarjeta
+        </div>
+      </button>
+    </form>
+
+  </div>
 
   <div class="secure">
     Pago seguro con MercadoPago
@@ -148,9 +168,9 @@ button {
   `);
 });
 
-// =========================
+// =====================
 // CREAR PREFERENCIA
-// =========================
+// =====================
 
 app.post("/crear-preferencia", async (req, res) => {
   try {

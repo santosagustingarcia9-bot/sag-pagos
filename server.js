@@ -1,20 +1,20 @@
 const express = require("express");
-const { MercadoPagoConfig, Preference } = require("mercadopago");
+const { MercadoPagoConfig, Payment } = require("mercadopago");
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ================================
 // CONFIG MERCADOPAGO
-// ================================
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN,
 });
 
-// ================================
+const payment = new Payment(client);
+
+// =============================
 // PAGINA PRINCIPAL
-// ================================
+// =============================
 app.get("/", (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -23,6 +23,8 @@ app.get("/", (req, res) => {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAG & SK - Pago</title>
+
+<script src="https://sdk.mercadopago.com/js/v2"></script>
 
 <style>
 body{
@@ -34,7 +36,6 @@ display:flex;
 justify-content:center;
 padding:20px;
 }
-
 .card{
 max-width:520px;
 width:100%;
@@ -42,120 +43,99 @@ background:#0d2740;
 border-radius:20px;
 padding:30px;
 box-shadow:0 20px 50px rgba(0,0,0,0.4);
-text-align:center;
 }
-
-.logo{
-width:110px;
-height:110px;
-border-radius:50%;
-object-fit:cover;
-margin-bottom:20px;
-}
-
-h1{margin:10px 0;font-size:30px;}
-h2{margin:10px 0 25px;font-size:22px;color:#ccc;}
-
+h1{text-align:center;}
 .price{
-font-size:45px;
-font-weight:bold;
-margin-bottom:25px;
+font-size:40px;
+text-align:center;
+margin:20px 0;
 }
-
-.method{
-display:flex;
-gap:15px;
-margin-bottom:25px;
-}
-
-.method button{
-flex:1;
-padding:14px;
-border-radius:12px;
+input,select{
+width:100%;
+padding:12px;
+margin-bottom:12px;
+border-radius:10px;
 border:none;
+}
+button{
+width:100%;
+padding:15px;
+background:linear-gradient(90deg,#6d3df5,#9f5cff);
+border:none;
+border-radius:12px;
+color:white;
 font-size:16px;
 cursor:pointer;
-background:#162f4a;
-color:white;
 }
-
-.method button.active{
-border:2px solid #7b4dff;
-}
-
-.pay-btn{
-width:100%;
-padding:18px;
-border:none;
-border-radius:14px;
-font-size:18px;
-font-weight:bold;
-cursor:pointer;
-background:linear-gradient(90deg,#7b4dff,#5f2fff);
-color:white;
-}
-
-.secure{
+.result{
 margin-top:15px;
-color:#aaa;
-font-size:14px;
+text-align:center;
+font-weight:bold;
 }
 </style>
 </head>
-
 <body>
 
 <div class="card">
-
-<img src="https://i.ibb.co/N6bp0zVr/tu-logo.jpg" class="logo">
-
 <h1>SAG & SK</h1>
-<h2>COMBINADA DEL DÍA</h2>
+<div class="price">$ 5000 ARS</div>
 
-<div id="price" class="price">$ 5000 ARS</div>
+<form id="paymentForm">
+<input type="text" id="cardholderName" placeholder="Nombre del titular" required>
+<input type="email" id="email" placeholder="Email" required>
 
-<div class="method">
-<button class="active">MercadoPago</button>
-<button>Tarjeta</button>
-</div>
+<div id="cardNumber"></div>
+<div id="expirationDate"></div>
+<div id="securityCode"></div>
+<div id="issuer"></div>
+<div id="installments"></div>
 
-<form action="/create_preference" method="POST">
-<button class="pay-btn">Pagar ahora</button>
+<button type="submit">Pagar ahora</button>
 </form>
 
-<div class="secure">PAGOS SEGUROS</div>
+<div class="result" id="result"></div>
 
 </div>
 
 <script>
-
-// PRECIO REAL EN ARS
-const basePrice = 5000;
-
-// Detectar país automáticamente
-fetch("https://ipapi.co/json/")
-.then(res => res.json())
-.then(data => {
-
-let country = data.country_code;
-let priceDiv = document.getElementById("price");
-
-// Conversión visual simple
-if(country === "ES"){
-priceDiv.innerHTML = "€ 5 EUR";
-}
-else if(country === "US"){
-priceDiv.innerHTML = "$ 6 USD";
-}
-else if(country === "MX"){
-priceDiv.innerHTML = "$ 110 MXN";
-}
-else{
-priceDiv.innerHTML = "$ 5000 ARS";
-}
-
+const mp = new MercadoPago("${process.env.MP_PUBLIC_KEY}", {
+locale: "es-AR"
 });
 
+const bricksBuilder = mp.bricks();
+
+const renderCardPaymentBrick = async () => {
+await bricksBuilder.create("cardPayment", "cardNumber", {
+initialization: {
+amount: 5000,
+payer: { email: "" },
+},
+callbacks: {
+onSubmit: async (cardFormData) => {
+try {
+const response = await fetch("/pagar", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify(cardFormData),
+});
+const result = await response.json();
+
+if(result.status === "approved"){
+document.getElementById("result").innerText = "✅ Pago aprobado";
+}else{
+document.getElementById("result").innerText = "❌ Pago rechazado";
+}
+
+} catch (error) {
+document.getElementById("result").innerText = "Error procesando pago";
+}
+},
+onError: (error) => console.error(error),
+},
+});
+};
+
+renderCardPaymentBrick();
 </script>
 
 </body>
@@ -163,37 +143,37 @@ priceDiv.innerHTML = "$ 5000 ARS";
 `);
 });
 
-// ================================
-// CREAR PREFERENCIA MERCADOPAGO
-// ================================
-app.post("/create_preference", async (req, res) => {
+// =============================
+// ENDPOINT PAGAR
+// =============================
+app.post("/pagar", async (req, res) => {
+try {
+const { token, issuer_id, payment_method_id, transaction_amount, installments, payer } = req.body;
 
-  const preference = new Preference(client);
-
-  const result = await preference.create({
-    body: {
-      items: [
-        {
-          title: "COMBINADA DEL DÍA - SAG & SK",
-          quantity: 1,
-          currency_id: "ARS",
-          unit_price: 5000,
-        },
-      ],
-      back_urls: {
-        success: "https://google.com",
-        failure: "https://google.com",
-        pending: "https://google.com",
-      },
-      auto_return: "approved",
-    },
-  });
-
-  res.redirect(result.init_point);
+const response = await payment.create({
+body: {
+transaction_amount: 5000,
+token,
+description: "Combinada del día",
+installments,
+payment_method_id,
+issuer_id,
+payer: {
+email: payer.email,
+},
+},
 });
 
-// ================================
-// SERVIDOR
-// ================================
+res.json({ status: response.status });
+
+} catch (error) {
+console.error(error);
+res.status(500).json({ error: "Error al procesar pago" });
+}
+});
+
+// PUERTO
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor corriendo"));
+app.listen(PORT, () => {
+console.log("Servidor funcionando en puerto " + PORT);
+});

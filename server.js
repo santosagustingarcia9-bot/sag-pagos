@@ -1,178 +1,173 @@
 const express = require("express");
 const mercadopago = require("mercadopago");
-const axios = require("axios");
 
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 mercadopago.configure({
   access_token: process.env.MP_ACCESS_TOKEN
 });
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-const GROUP_ID = process.env.GROUP_ID;
-const BASE_URL = process.env.BASE_URL;
-
-/* =======================
-   PAGINA PRINCIPAL
-======================= */
+// =========================
+// PAGINA PRINCIPAL
+// =========================
 
 app.get("/", (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAG & SK - Pago</title>
 
-  const html = `
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <title>SAG y SK - Combinada</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-      body{
-        margin:0;
-        font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-        background:#f5f6f8;
-      }
-      .card{
-        max-width:480px;
-        margin:30px auto;
-        background:white;
-        border-radius:20px;
-        padding:25px;
-        box-shadow:0 15px 40px rgba(0,0,0,0.08);
-      }
-      .brand{
-        display:flex;
-        align-items:center;
-        gap:15px;
-        margin-bottom:20px;
-      }
-      .brand img{
-        width:60px;
-        height:60px;
-        border-radius:50%;
-      }
-      h1{
-        margin:0;
-        font-size:22px;
-      }
-      h2{
-        margin-top:20px;
-        font-size:26px;
-      }
-      .price{
-        font-size:32px;
-        font-weight:bold;
-        margin:20px 0;
-      }
-      input{
-        width:100%;
-        padding:15px;
-        border-radius:10px;
-        border:1px solid #ddd;
-        font-size:16px;
-        margin-bottom:15px;
-      }
-      button{
-        width:100%;
-        padding:15px;
-        border:none;
-        border-radius:12px;
-        font-size:18px;
-        font-weight:bold;
-        color:white;
-        background:linear-gradient(90deg,#6366f1,#4f46e5);
-        cursor:pointer;
-      }
-      button:hover{
-        opacity:0.9;
-      }
-      .methods{
-        margin-top:20px;
-        display:grid;
-        grid-template-columns:1fr 1fr;
-        gap:10px;
-      }
-      .method{
-        background:#f3f4f6;
-        padding:15px;
-        border-radius:10px;
-        text-align:center;
-        font-weight:600;
-      }
-      .secure{
-        text-align:center;
-        margin-top:15px;
-        color:#666;
-        font-size:14px;
-      }
-    </style>
-  </head>
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f4f6f9;
+}
 
-  <body>
+.container {
+  max-width: 500px;
+  margin: 40px auto;
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+}
 
-    <div class="card">
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
 
-      <div class="brand">
-        <img src="https://via.placeholder.com/60">
-        <div>
-          <h1>SAG y SK</h1>
-          <div>Pronosticador verificado</div>
-        </div>
-      </div>
+.brand img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+}
 
-      <h2>STAKE 10 + COMBINADA</h2>
+.brand-text h2 {
+  margin: 0;
+  font-size: 20px;
+}
 
-      <div class="price">$ 5.000 ARS</div>
+.brand-text span {
+  color: #2ecc71;
+  font-size: 14px;
+  font-weight: 500;
+}
 
-      <form action="/crear-preferencia" method="POST">
-        <input name="nombre" placeholder="Tu nombre completo" required>
-        <button type="submit">Pagar ahora</button>
-      </form>
+h1 {
+  font-size: 22px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
 
-      <div class="methods">
-        <div class="method">MercadoPago</div>
-        <div class="method">Visa / Mastercard</div>
-        <div class="method">Google Pay</div>
-        <div class="method">Crypto</div>
-      </div>
+.summary {
+  margin-top: 20px;
+  font-size: 15px;
+}
 
-      <div class="secure">
-        Pago seguro con MercadoPago
-      </div>
+.total {
+  margin-top: 25px;
+  text-align: center;
+}
 
+.total span {
+  display: block;
+  font-size: 14px;
+  color: gray;
+}
+
+.total h2 {
+  font-size: 32px;
+  margin: 10px 0;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg,#6366f1,#7c3aed);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.secure {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 13px;
+  color: gray;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="brand">
+    <img src="https://i.ibb.co/3Jv3hYH/logo.png" alt="Logo">
+    <div class="brand-text">
+      <h2>SAG & SK</h2>
+      <span>✔ Pronosticador verificado</span>
     </div>
+  </div>
 
-  </body>
-  </html>
-  `;
+  <h1>COMBINADA DEL DÍA</h1>
 
-  res.send(html);
+  <div class="summary">
+    Producto: Combinada Premium
+  </div>
+
+  <div class="total">
+    <span>Total a pagar</span>
+    <h2>$ 5.000 ARS</h2>
+  </div>
+
+  <form action="/crear-preferencia" method="POST">
+    <button type="submit">Pagar ahora</button>
+  </form>
+
+  <div class="secure">
+    Pago seguro con MercadoPago
+  </div>
+
+</div>
+
+</body>
+</html>
+  `);
 });
 
-
-/* =======================
-   CREAR PAGO
-======================= */
+// =========================
+// CREAR PREFERENCIA
+// =========================
 
 app.post("/crear-preferencia", async (req, res) => {
-
   try {
-
     const preference = {
       items: [
         {
-          title: "SAG y SK - Combinada",
+          title: "SAG & SK - COMBINADA DEL DÍA",
           unit_price: 5000,
           quantity: 1
         }
       ],
       back_urls: {
-        success: BASE_URL,
-        failure: BASE_URL,
-        pending: BASE_URL
+        success: process.env.BASE_URL,
+        failure: process.env.BASE_URL,
+        pending: process.env.BASE_URL
       },
-      auto_return: "approved",
-      notification_url: BASE_URL + "/webhook"
+      auto_return: "approved"
     };
 
     const response = await mercadopago.preferences.create(preference);
@@ -181,43 +176,10 @@ app.post("/crear-preferencia", async (req, res) => {
 
   } catch (error) {
     console.log(error);
-    res.send("Error al crear pago");
+    res.send("Error al crear el pago");
   }
 });
 
-
-/* =======================
-   WEBHOOK TELEGRAM
-======================= */
-
-app.post("/webhook", async (req, res) => {
-
-  try {
-
-    if (req.body.type === "payment") {
-
-      const payment = await mercadopago.payment.findById(req.body.data.id);
-
-      if (payment.body.status === "approved") {
-
-        const invite = await axios.post(
-          "https://api.telegram.org/bot" + TELEGRAM_TOKEN + "/createChatInviteLink",
-          {
-            chat_id: GROUP_ID,
-            member_limit: 1
-          }
-        );
-
-        console.log("Link creado:", invite.data.result.invite_link);
-      }
-    }
-
-    res.sendStatus(200);
-
-  } catch (err) {
-    console.log(err);
-    res.sendStatus(500);
-  }
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Servidor funcionando 🚀");
 });
-
-app.listen(process.env.PORT || 3000);

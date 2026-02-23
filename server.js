@@ -4,6 +4,7 @@ const mercadopago = require("mercadopago");
 const app = express();
 app.use(express.json());
 
+// CONFIG MERCADOPAGO
 mercadopago.configure({
   access_token: process.env.MP_ACCESS_TOKEN
 });
@@ -11,173 +12,163 @@ mercadopago.configure({
 // =====================
 // PAGINA PRINCIPAL
 // =====================
-
 app.get("/", (req, res) => {
   res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAG & SK - Pago</title>
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SAG & SK - Pago</title>
 
-<style>
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f4f6f9;
-}
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f4f6f9;
+      }
 
-.container {
-  max-width: 520px;
-  margin: 40px auto;
-  background: white;
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.08);
-}
+      .container {
+        max-width: 520px;
+        margin: 40px auto;
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+        text-align: center;
+      }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
-}
+      .brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
 
-.brand img {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-}
+      .brand img {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+      }
 
-.brand-text h2 {
-  margin: 0;
-  font-size: 20px;
-}
+      .brand h2 {
+        margin: 0;
+      }
 
-.brand-text span {
-  color: #22c55e;
-  font-size: 14px;
-}
+      .verified {
+        color: #2ecc71;
+        font-size: 14px;
+      }
 
-h1 {
-  font-size: 22px;
-  margin-top: 20px;
-}
+      h1 {
+        margin-top: 25px;
+        font-size: 28px;
+      }
 
-.total {
-  text-align: center;
-  margin: 25px 0;
-}
+      .price {
+        font-size: 42px;
+        font-weight: bold;
+        margin: 10px 0 30px 0;
+      }
 
-.total span {
-  color: gray;
-  font-size: 14px;
-}
+      .methods {
+        display: flex;
+        gap: 15px;
+      }
 
-.total h2 {
-  font-size: 34px;
-  margin: 8px 0;
-}
+      .method {
+        flex: 1;
+        border: 2px solid #e5e5e5;
+        border-radius: 15px;
+        padding: 20px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
 
-.pay-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-top: 20px;
-}
+      .method:hover {
+        border-color: #6c5ce7;
+      }
 
-.option {
-  padding: 15px;
-  border-radius: 14px;
-  border: 2px solid #eee;
-  cursor: pointer;
-  text-align: center;
-  font-weight: 600;
-  transition: 0.2s;
-}
+      .cards {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #555;
+      }
 
-.option:hover {
-  border-color: #7c3aed;
-  box-shadow: 0 4px 15px rgba(124,58,237,0.2);
-}
+      .btn {
+        margin-top: 30px;
+        width: 100%;
+        padding: 16px;
+        border: none;
+        border-radius: 14px;
+        font-size: 18px;
+        font-weight: bold;
+        color: white;
+        cursor: pointer;
+        background: linear-gradient(90deg, #6c5ce7, #5f27cd);
+      }
 
-.option img {
-  width: 80px;
-  margin-bottom: 10px;
-}
+      .secure {
+        margin-top: 20px;
+        color: #777;
+        font-size: 14px;
+      }
 
-.secure {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 13px;
-  color: gray;
-}
-</style>
-</head>
+    </style>
+  </head>
 
-<body>
+  <body>
+    <div class="container">
 
-<div class="container">
+      <div class="brand">
+        <img src="https://i.ibb.co/3Jv3hYH/logo.png" />
+        <div>
+          <h2>SAG & SK</h2>
+          <div class="verified">✔ Pronosticador verificado</div>
+        </div>
+      </div>
 
-  <div class="brand">
-    <img src="https://i.ibb.co/3Jv3hYH/logo.png">
-    <div class="brand-text">
-      <h2>SAG & SK</h2>
-      <span>✔ Pronosticador verificado</span>
+      <h1>COMBINADA DEL DÍA</h1>
+      <div class="price">$ 5.000 ARS</div>
+
+      <div class="methods">
+        <div class="method" onclick="window.location='/pagar'">
+          <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo.png" width="120" />
+          <div>MercadoPago</div>
+        </div>
+
+        <div class="method" onclick="window.location='/pagar'">
+          <div style="font-size:18px;font-weight:bold;">Tarjeta</div>
+          <div class="cards">
+            Visa • Mastercard • Amex
+          </div>
+        </div>
+      </div>
+
+      <button class="btn" onclick="window.location='/pagar'">
+        Pagar ahora
+      </button>
+
+      <div class="secure">
+        PAGOS SEGUROS
+      </div>
+
     </div>
-  </div>
-
-  <h1>COMBINADA DEL DÍA</h1>
-
-  <div class="total">
-    <span>Total a pagar</span>
-    <h2>$ 5.000 ARS</h2>
-  </div>
-
-  <div class="pay-options">
-
-    <form action="/crear-preferencia" method="POST">
-      <button class="option" type="submit" style="all:unset; display:block; width:100%;">
-        <div class="option">
-          <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo.png">
-          MercadoPago
-        </div>
-      </button>
-    </form>
-
-    <form action="/crear-preferencia" method="POST">
-      <button class="option" type="submit" style="all:unset; display:block; width:100%;">
-        <div class="option">
-          <img src="https://logodownload.org/wp-content/uploads/2014/09/visa-logo-1.png">
-          Tarjeta
-        </div>
-      </button>
-    </form>
-
-  </div>
-
-  <div class="secure">
-    Pago seguro con MercadoPago
-  </div>
-
-</div>
-
-</body>
-</html>
+  </body>
+  </html>
   `);
 });
 
 // =====================
-// CREAR PREFERENCIA
+// CREAR PAGO MP
 // =====================
-
-app.post("/crear-preferencia", async (req, res) => {
+app.get("/pagar", async (req, res) => {
   try {
     const preference = {
       items: [
         {
-          title: "SAG & SK - COMBINADA DEL DÍA",
+          title: "Combinada del día",
           unit_price: 5000,
           quantity: 1
         }
@@ -200,6 +191,6 @@ app.post("/crear-preferencia", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Servidor funcionando 🚀");
-});
+// =====================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Servidor activo"));

@@ -1,19 +1,15 @@
 const express = require("express");
-const { MercadoPagoConfig, Preference } = require("mercadopago");
+const path = require("path");
+const axios = require("axios");
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🔐 VARIABLES
-const accessToken = process.env.MP_ACCESS_TOKEN;
-const publicKey = process.env.MP_PUBLIC_KEY;
-
-// 🔧 CONFIG MP
-const client = new MercadoPagoConfig({
-  accessToken: accessToken,
-});
-
+// ===============================
+// CONFIG MERCADOPAGO
+// ===============================
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 
 // ===============================
 // PAGINA PRINCIPAL
@@ -24,66 +20,58 @@ app.get("/", (req, res) => {
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAG & SK - Payment</title>
-
 <script src="https://sdk.mercadopago.com/js/v2"></script>
-
 <style>
 body{
   margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  background:#f2f2f2;
+  font-family:Arial, sans-serif;
+  background:#f3f3f3;
   display:flex;
   justify-content:center;
   padding:20px;
 }
-
 .card{
   width:100%;
   max-width:500px;
   background:white;
   border-radius:20px;
-  padding:25px;
-  box-shadow:0 10px 40px rgba(0,0,0,0.1);
+  padding:30px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
 }
-
 .logo{
   text-align:center;
-  margin-bottom:10px;
 }
-
 .logo img{
-  width:80px;
-  height:80px;
+  width:120px;
   border-radius:50%;
-  object-fit:cover;
 }
-
 h1{
   text-align:center;
-  margin:10px 0 0 0;
+  margin:10px 0 0;
 }
-
-.subtitle{
+.verified{
   text-align:center;
   color:green;
   margin-bottom:20px;
 }
-
-.price{
-  background:#f5f5f5;
+.total{
+  background:#eee;
   padding:15px;
   border-radius:10px;
   display:flex;
   justify-content:space-between;
-  font-size:20px;
   font-weight:bold;
-  margin-bottom:25px;
+  margin-bottom:20px;
 }
-
 #paymentBrick_container{
-  margin-top:10px;
+  margin-top:20px;
+}
+.success{
+  text-align:center;
+  color:green;
+  font-weight:bold;
+  margin-top:20px;
 }
 </style>
 </head>
@@ -91,30 +79,29 @@ h1{
 
 <div class="card">
 
-  <div class="logo">
-    <img src="https://i.ibb.co/N6bp0zVr/tu-logo.jpg" />
-  </div>
+<div class="logo">
+<img src="https://i.ibb.co/N6bp0zVr/tu-logo.jpg">
+</div>
 
-  <h1>SAG & SK</h1>
-  <div class="subtitle">Pronosticador verificado</div>
+<h1>SAG & SK</h1>
+<div class="verified">Pronosticador verificado</div>
 
-  <div class="price">
-    <span>Total</span>
-    <span>$ 5000 ARS</span>
-  </div>
+<div class="total">
+<span>Total</span>
+<span>$ 5000 ARS</span>
+</div>
 
-  <div id="paymentBrick_container"></div>
+<div id="paymentBrick_container"></div>
+<div id="result"></div>
 
 </div>
 
 <script>
-const mp = new MercadoPago("${publicKey}", {
+const mp = new MercadoPago("${process.env.MP_PUBLIC_KEY}", {
   locale: "es-AR"
 });
 
-const bricksBuilder = mp.bricks();
-
-bricksBuilder.create("payment", "paymentBrick_container", {
+mp.bricks().create("payment", "paymentBrick_container", {
   initialization: {
     amount: 5000
   },
@@ -126,26 +113,28 @@ bricksBuilder.create("payment", "paymentBrick_container", {
     }
   },
   callbacks: {
-    onReady: () => {
-      console.log("Brick listo");
-    },
-    onSubmit: async (formData) => {
+    onSubmit: async (cardData) => {
       try {
-        const response = await fetch("/procesar-pago", {
+        const response = await fetch("/process_payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(cardData)
         });
 
         const result = await response.json();
-        alert("Pago procesado");
-        return result;
+
+        if(result.status === "approved"){
+          document.getElementById("result").innerHTML =
+            "<div class='success'>Pago aprobado correctamente</div>";
+        } else {
+          document.getElementById("result").innerHTML =
+            "<div style='color:red;text-align:center;'>Pago rechazado</div>";
+        }
+
       } catch (error) {
-        alert("Error procesando pago");
+        document.getElementById("result").innerHTML =
+          "<div style='color:red;text-align:center;'>Error procesando pago</div>";
       }
-    },
-    onError: (error) => {
-      console.error(error);
     }
   }
 });
@@ -156,37 +145,43 @@ bricksBuilder.create("payment", "paymentBrick_container", {
 `);
 });
 
+// ===============================
+// PROCESAR PAGO REAL
+// ===============================
+app.post("/process_payment", async (req, res) => {
 
-// ===============================
-// PROCESAR PAGO
-// ===============================
-app.post("/procesar-pago", async (req, res) => {
   try {
 
-    const preference = new Preference(client);
-
-    const result = await preference.create({
-      body: {
-        items: [
-          {
-            title: "STAKE 10 + COMBINADA",
-            quantity: 1,
-            unit_price: 5000,
-            currency_id: "ARS"
-          }
-        ]
+    const payment_data = {
+      transaction_amount: 5000,
+      token: req.body.token,
+      description: "SAG & SK - Combinada",
+      installments: req.body.installments,
+      payment_method_id: req.body.payment_method_id,
+      issuer_id: req.body.issuer_id,
+      payer: {
+        email: req.body.payer.email
       }
-    });
+    };
 
-    res.json({ id: result.id });
+    const response = await axios.post(
+      "https://api.mercadopago.com/v1/payments",
+      payment_data,
+      {
+        headers: {
+          Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.json({ status: response.data.status });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error en pago" });
+    res.json({ status: "error" });
   }
+
 });
 
-
-// ===============================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor corriendo"));
+app.listen(PORT, () => console.log("Servidor funcionando"));

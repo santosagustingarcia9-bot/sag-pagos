@@ -1,20 +1,19 @@
 const express = require("express");
+const path = require("path");
 const { MercadoPagoConfig, Preference } = require("mercadopago");
 
 const app = express();
 app.use(express.json());
 
-// 🔐 Configuración correcta SDK v2
+// 📁 Servir archivos estáticos (index.html)
+app.use(express.static(path.join(__dirname)));
+
+// 🔐 MercadoPago SDK v2
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN,
 });
 
 const preference = new Preference(client);
-
-// 🏠 Ruta principal
-app.get("/", (req, res) => {
-  res.send("Servidor funcionando correctamente ✅");
-});
 
 // 💳 Crear preferencia
 app.post("/crear-preferencia", async (req, res) => {
@@ -44,7 +43,6 @@ app.post("/crear-preferencia", async (req, res) => {
   }
 });
 
-// 🚀 Puerto Railway
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Servidor corriendo en puerto " + PORT);

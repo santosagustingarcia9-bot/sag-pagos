@@ -23,7 +23,7 @@ app.post("/crear-preferencia", async (req, res) => {
         {
           title: "Combinada del día",
           quantity: 1,
-          unit_price: 5000,
+          unit_price: 2,
           currency_id: "ARS",
         },
       ],

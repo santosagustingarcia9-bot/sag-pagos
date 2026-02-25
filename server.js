@@ -1,41 +1,59 @@
 const express = require("express");
-const axios = require("axios");
+const mercadopago = require("mercadopago");
 const path = require("path");
 
 const app = express();
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname)));
 
-app.post("/crear-preferencia", async (req, res) => {
-    try {
-        const response = await axios.post(
-            "https://api.mercadopago.com/checkout/preferences",
-            {
-                items: [
-                    {
-                        title: "COMBINADA DEL DÍA",
-                        quantity: 1,
-                        currency_id: "ARS",
-                        unit_price: 5000
-                    }
-                ]
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-                    "Content-Type": "application/json"
-                }
-            }
-        );
+mercadopago.configure({
+  access_token: process.env.MP_ACCESS_TOKEN
+});
 
-        res.json({ init_point: response.data.init_point });
+// Crear preferencia (botón MercadoPago)
+app.post("/create_preference", async (req, res) => {
+  try {
+    const preference = {
+      items: [
+        {
+          title: "Combinada del día",
+          unit_price: 5000,
+          quantity: 1,
+          currency_id: "ARS"
+        }
+      ]
+    };
 
-    } catch (error) {
-        console.log(error.response?.data || error.message);
-        res.status(500).send("Error creando preferencia");
-    }
+    const response = await mercadopago.preferences.create(preference);
+    res.json({ id: response.body.id });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Crear pago con tarjeta
+app.post("/process_payment", async (req, res) => {
+  try {
+    const paymentData = {
+      transaction_amount: Number(req.body.transaction_amount),
+      token: req.body.token,
+      description: "Combinada del día",
+      installments: Number(req.body.installments),
+      payment_method_id: req.body.payment_method_id,
+      payer: {
+        email: req.body.payer.email
+      }
+    };
+
+    const result = await mercadopago.payment.create(paymentData);
+    res.json(result.body);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.listen(process.env.PORT || 3000, () => {
-    console.log("Servidor corriendo");
+  console.log("Servidor corriendo");
 });

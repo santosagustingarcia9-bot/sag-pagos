@@ -1,59 +1,51 @@
 const express = require("express");
-const mercadopago = require("mercadopago");
-const path = require("path");
+const { MercadoPagoConfig, Preference } = require("mercadopago");
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
 
-mercadopago.configure({
-  access_token: process.env.MP_ACCESS_TOKEN
+// 🔐 Configuración correcta SDK v2
+const client = new MercadoPagoConfig({
+  accessToken: process.env.MP_ACCESS_TOKEN,
 });
 
-// Crear preferencia (botón MercadoPago)
-app.post("/create_preference", async (req, res) => {
+const preference = new Preference(client);
+
+// 🏠 Ruta principal
+app.get("/", (req, res) => {
+  res.send("Servidor funcionando correctamente ✅");
+});
+
+// 💳 Crear preferencia
+app.post("/crear-preferencia", async (req, res) => {
   try {
-    const preference = {
+    const body = {
       items: [
         {
           title: "Combinada del día",
-          unit_price: 5000,
           quantity: 1,
-          currency_id: "ARS"
-        }
-      ]
+          unit_price: 5000,
+          currency_id: "ARS",
+        },
+      ],
     };
 
-    const response = await mercadopago.preferences.create(preference);
-    res.json({ id: response.body.id });
+    const result = await preference.create({ body });
+
+    res.json({
+      id: result.id,
+    });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({
+      error: "Error creando preferencia",
+    });
   }
 });
 
-// Crear pago con tarjeta
-app.post("/process_payment", async (req, res) => {
-  try {
-    const paymentData = {
-      transaction_amount: Number(req.body.transaction_amount),
-      token: req.body.token,
-      description: "Combinada del día",
-      installments: Number(req.body.installments),
-      payment_method_id: req.body.payment_method_id,
-      payer: {
-        email: req.body.payer.email
-      }
-    };
-
-    const result = await mercadopago.payment.create(paymentData);
-    res.json(result.body);
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Servidor corriendo");
+// 🚀 Puerto Railway
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Servidor corriendo en puerto " + PORT);
 });

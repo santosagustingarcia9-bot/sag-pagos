@@ -5,16 +5,12 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CONFIG MERCADOPAGO
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN,
 });
 
 const payment = new Payment(client);
 
-// =============================
-// PAGINA PRINCIPAL
-// =============================
 app.get("/", (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -22,51 +18,76 @@ app.get("/", (req, res) => {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAG & SK - Pago</title>
-
+<title>SAG & SK - Payment</title>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
 
 <style>
 body{
 margin:0;
-font-family:Arial, Helvetica, sans-serif;
-background:#071a2c;
-color:white;
+font-family:Arial, sans-serif;
+background:#f3f4f6;
 display:flex;
 justify-content:center;
 padding:20px;
 }
-.card{
-max-width:520px;
+
+.container{
+max-width:500px;
 width:100%;
-background:#0d2740;
+background:white;
 border-radius:20px;
-padding:30px;
-box-shadow:0 20px 50px rgba(0,0,0,0.4);
+padding:25px;
+box-shadow:0 10px 30px rgba(0,0,0,0.1);
 }
-h1{text-align:center;}
-.price{
-font-size:40px;
-text-align:center;
-margin:20px 0;
+
+.header{
+display:flex;
+align-items:center;
+gap:15px;
 }
-input,select{
-width:100%;
-padding:12px;
-margin-bottom:12px;
-border-radius:10px;
-border:none;
+
+.logo{
+width:60px;
+height:60px;
+border-radius:50%;
+object-fit:cover;
 }
-button{
-width:100%;
+
+.title{
+font-size:20px;
+font-weight:bold;
+}
+
+.subtitle{
+color:gray;
+font-size:14px;
+}
+
+.section{
+margin-top:20px;
+}
+
+.price-box{
+background:#f9fafb;
 padding:15px;
-background:linear-gradient(90deg,#6d3df5,#9f5cff);
+border-radius:10px;
+display:flex;
+justify-content:space-between;
+font-weight:bold;
+}
+
+button{
+margin-top:15px;
+width:100%;
+padding:14px;
 border:none;
-border-radius:12px;
+border-radius:10px;
+background:#111827;
 color:white;
 font-size:16px;
 cursor:pointer;
 }
+
 .result{
 margin-top:15px;
 text-align:center;
@@ -76,22 +97,28 @@ font-weight:bold;
 </head>
 <body>
 
-<div class="card">
-<h1>SAG & SK</h1>
-<div class="price">$ 5000 ARS</div>
+<div class="container">
 
-<form id="paymentForm">
-<input type="text" id="cardholderName" placeholder="Nombre del titular" required>
-<input type="email" id="email" placeholder="Email" required>
+<div class="header">
+<img src="https://ibb.co/20wwmg12" class="logo">
+<div>
+<div class="title">SAG & SK</div>
+<div class="subtitle">Pronosticador verificado</div>
+</div>
+</div>
 
-<div id="cardNumber"></div>
-<div id="expirationDate"></div>
-<div id="securityCode"></div>
-<div id="issuer"></div>
-<div id="installments"></div>
+<div class="section">
+<h3>STAKE 10 + COMBINADA</h3>
+<div class="price-box">
+<span>Total</span>
+<span>$ 5000 ARS</span>
+</div>
+</div>
 
-<button type="submit">Pagar ahora</button>
-</form>
+<div class="section">
+<h3>Datos de pago</h3>
+<div id="cardPaymentBrick_container"></div>
+</div>
 
 <div class="result" id="result"></div>
 
@@ -104,38 +131,33 @@ locale: "es-AR"
 
 const bricksBuilder = mp.bricks();
 
-const renderCardPaymentBrick = async () => {
-await bricksBuilder.create("cardPayment", "cardNumber", {
+bricksBuilder.create("cardPayment", "cardPaymentBrick_container", {
 initialization: {
 amount: 5000,
-payer: { email: "" },
 },
 callbacks: {
-onSubmit: async (cardFormData) => {
-try {
+onSubmit: async (formData) => {
+try{
 const response = await fetch("/pagar", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify(cardFormData),
+method:"POST",
+headers: {"Content-Type":"application/json"},
+body: JSON.stringify(formData)
 });
-const result = await response.json();
 
-if(result.status === "approved"){
+const data = await response.json();
+
+if(data.status === "approved"){
 document.getElementById("result").innerText = "✅ Pago aprobado";
 }else{
 document.getElementById("result").innerText = "❌ Pago rechazado";
 }
-
-} catch (error) {
+}catch(e){
 document.getElementById("result").innerText = "Error procesando pago";
 }
 },
-onError: (error) => console.error(error),
-},
+onError: error => console.error(error)
+}
 });
-};
-
-renderCardPaymentBrick();
 </script>
 
 </body>
@@ -143,37 +165,33 @@ renderCardPaymentBrick();
 `);
 });
 
-// =============================
-// ENDPOINT PAGAR
-// =============================
 app.post("/pagar", async (req, res) => {
-try {
-const { token, issuer_id, payment_method_id, transaction_amount, installments, payer } = req.body;
+try{
+const { token, issuer_id, payment_method_id, installments, payer } = req.body;
 
 const response = await payment.create({
-body: {
+body:{
 transaction_amount: 5000,
 token,
-description: "Combinada del día",
+description:"Stake 10 + Combinada",
 installments,
 payment_method_id,
 issuer_id,
-payer: {
+payer:{
 email: payer.email,
-},
-},
+}
+}
 });
 
 res.json({ status: response.status });
 
-} catch (error) {
+}catch(error){
 console.error(error);
-res.status(500).json({ error: "Error al procesar pago" });
+res.status(500).json({error:"Error"});
 }
 });
 
-// PUERTO
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-console.log("Servidor funcionando en puerto " + PORT);
+console.log("Servidor funcionando");
 });

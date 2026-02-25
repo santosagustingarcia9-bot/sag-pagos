@@ -5,59 +5,57 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
-const MP_PUBLIC_KEY = process.env.MP_PUBLIC_KEY;
-
-app.get("/config", (req, res) => {
-  res.json({ publicKey: MP_PUBLIC_KEY });
-});
-
+// ===============================
+// PAGINA PRINCIPAL
+// ===============================
 app.get("/", (req, res) => {
   res.send(`
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAG & SK - Payment</title>
-<script src="https://sdk.mercadopago.com/js/v2"></script>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  background:#f4f4f4;
+  background:#f2f2f2;
   display:flex;
   justify-content:center;
   padding:20px;
 }
+
 .card{
   width:100%;
   max-width:500px;
   background:white;
   border-radius:20px;
-  padding:30px;
-  box-shadow:0 10px 40px rgba(0,0,0,0.1);
+  padding:25px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
 }
+
 .logo{
-  text-align:center;
-}
-.logo img{
-  width:110px;
+  width:90px;
+  height:90px;
   border-radius:50%;
+  display:block;
+  margin:0 auto 10px auto;
 }
-h1{
+
+.title{
   text-align:center;
-  margin:10px 0 5px;
+  font-size:28px;
+  font-weight:bold;
 }
+
 .verified{
   text-align:center;
-  color:#1a8f2e;
-  font-weight:bold;
+  color:green;
   margin-bottom:20px;
 }
-.summary{
-  margin-bottom:20px;
-}
+
 .total{
   background:#eee;
   padding:15px;
@@ -65,24 +63,50 @@ h1{
   display:flex;
   justify-content:space-between;
   font-weight:bold;
+  margin-bottom:25px;
 }
-.logos{
-  margin-top:15px;
+
+.section-title{
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.payment-options{
+  display:flex;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.payment-btn{
+  flex:1;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  background:#fafafa;
   text-align:center;
+  cursor:pointer;
 }
-.logos img{
-  height:25px;
-  margin:0 5px;
+
+.pay-button{
+  width:100%;
+  padding:15px;
+  background:#009ee3;
+  color:white;
+  border:none;
+  border-radius:10px;
+  font-size:16px;
+  cursor:pointer;
 }
-.success{
-  color:green;
-  text-align:center;
-  margin-top:15px;
+
+.pay-button:hover{
+  background:#007dc1;
 }
-.error{
-  color:red;
-  text-align:center;
-  margin-top:15px;
+
+.summary{
+  margin-bottom:20px;
+  background:#f7f7f7;
+  padding:15px;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -91,113 +115,100 @@ h1{
 
 <div class="card">
 
-<div class="logo">
-<img src="https://i.ibb.co/N6bp0zVr/tu-logo.jpg">
-</div>
+<img class="logo" src="https://i.imgur.com/0y0y0y0.png">
 
-<h1>SAG & SK</h1>
+<div class="title">SAG & SK</div>
 <div class="verified">✔ Pronosticador verificado</div>
 
 <div class="summary">
-<h3>Resumen de compra</h3>
-<div class="total">
-<span>Stake 10 + Combinada</span>
+<div class="section-title">Resumen de compra</div>
+<div style="display:flex;justify-content:space-between;">
+<span>STAKE 10 + COMBINADA</span>
 <span>$ 5000 ARS</span>
 </div>
 </div>
 
-<div id="paymentBrick_container"></div>
-
-<div class="logos">
-<img src="https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/5.21.8/mercadopago/logo__large_plus.png">
-<img src="https://img.icons8.com/color/48/visa.png">
-<img src="https://img.icons8.com/color/48/mastercard.png">
-<img src="https://img.icons8.com/color/48/amex.png">
+<div class="total">
+<span>Total</span>
+<span>$ 5000 ARS</span>
 </div>
 
-<div id="result"></div>
+<div class="section-title">Forma de pago</div>
 
+<div class="payment-options">
+<div class="payment-btn">MercadoPago</div>
+<div class="payment-btn">Tarjeta</div>
 </div>
 
-<script>
+<form action="/pagar" method="POST">
+<button class="pay-button">Pagar ahora</button>
+</form>
 
-async function initPayment() {
-
-  const config = await fetch("/config").then(r => r.json());
-
-  const mp = new MercadoPago(config.publicKey, {
-    locale: "es-AR"
-  });
-
-  mp.bricks().create("payment", "paymentBrick_container", {
-    initialization: {
-      amount: 5000
-    },
-    callbacks: {
-      onSubmit: async (cardData) => {
-
-        const response = await fetch("/process_payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cardData)
-        });
-
-        const result = await response.json();
-
-        if(result.status === "approved"){
-          document.getElementById("result").innerHTML =
-          "<div class='success'>Pago aprobado correctamente</div>";
-        } else {
-          document.getElementById("result").innerHTML =
-          "<div class='error'>Pago rechazado</div>";
-        }
-      }
-    }
-  });
-}
-
-initPayment();
-
-</script>
+</div>
 
 </body>
 </html>
 `);
 });
 
-app.post("/process_payment", async (req, res) => {
 
+// ===============================
+// CREAR PREFERENCIA MERCADOPAGO
+// ===============================
+app.post("/pagar", async (req, res) => {
   try {
 
-    const payment_data = {
-      transaction_amount: 5000,
-      token: req.body.token,
-      description: "SAG & SK - Combinada",
-      installments: req.body.installments,
-      payment_method_id: req.body.payment_method_id,
-      issuer_id: req.body.issuer_id,
-      payer: {
-        email: req.body.payer.email
-      }
-    };
-
     const response = await axios.post(
-      "https://api.mercadopago.com/v1/payments",
-      payment_data,
+      "https://api.mercadopago.com/checkout/preferences",
+      {
+        items: [
+          {
+            title: "SAG & SK - Combinada",
+            quantity: 1,
+            currency_id: "ARS",
+            unit_price: 5000
+          }
+        ],
+        back_urls: {
+          success: "https://sag-pagos-production.up.railway.app/success",
+          failure: "https://sag-pagos-production.up.railway.app/failure",
+          pending: "https://sag-pagos-production.up.railway.app/pending"
+        },
+        auto_return: "approved"
+      },
       {
         headers: {
-          Authorization: \`Bearer \${MP_ACCESS_TOKEN}\`,
+          Authorization: \`Bearer \${process.env.MP_ACCESS_TOKEN}\`,
           "Content-Type": "application/json"
         }
       }
     );
 
-    res.json({ status: response.data.status });
+    res.redirect(response.data.init_point);
 
   } catch (error) {
-    res.json({ status: "error" });
+    console.log(error.response?.data || error.message);
+    res.send("Error creando pago");
   }
-
 });
 
-app.listen(process.env.PORT || 3000);
+
+// ===============================
+// RESPUESTAS
+// ===============================
+app.get("/success", (req, res) => {
+  res.send("<h1>Pago aprobado ✅</h1>");
+});
+
+app.get("/failure", (req, res) => {
+  res.send("<h1>Pago rechazado ❌</h1>");
+});
+
+app.get("/pending", (req, res) => {
+  res.send("<h1>Pago pendiente ⏳</h1>");
+});
+
+
+app.listen(3000, () => {
+  console.log("Servidor funcionando en puerto 3000");
+});

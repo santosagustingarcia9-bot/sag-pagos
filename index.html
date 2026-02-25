@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,130 +15,140 @@ body{
   justify-content:center;
   padding:20px;
 }
+
 .card{
   background:white;
   max-width:420px;
   width:100%;
+  padding:25px;
   border-radius:20px;
-  padding:30px;
   text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
 }
+
 .logo{
   width:120px;
+  height:120px;
   border-radius:50%;
+  object-fit:cover;
 }
-.method{
-  border:1px solid #ddd;
-  border-radius:12px;
+
+.verify{
+  color:green;
+  font-weight:bold;
+  margin-bottom:15px;
+}
+
+.resumen{
+  background:#f0f0f0;
   padding:15px;
-  margin-top:15px;
+  border-radius:12px;
+  margin:15px 0;
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+}
+
+.method{
+  border:2px solid #eee;
+  padding:15px;
+  border-radius:12px;
+  margin:10px 0;
   cursor:pointer;
 }
-button{
-  margin-top:20px;
-  width:100%;
+
+.method:hover{
+  border-color:#6c63ff;
+}
+
+.btn{
+  background:linear-gradient(90deg,#6c63ff,#7b74ff);
+  color:white;
   padding:15px;
   border:none;
   border-radius:12px;
-  background:linear-gradient(90deg,#5f6cff,#8a63ff);
-  color:white;
   font-size:16px;
+  width:100%;
+  margin-top:15px;
+  cursor:pointer;
+}
+
+#card-form{
+  display:none;
+  margin-top:15px;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border-radius:8px;
+  border:1px solid #ddd;
 }
 </style>
 </head>
-
 <body>
 
 <div class="card">
 
-<img src="https://i.ibb.co/20wwmg12/tu-logo.png" class="logo">
+<img src="https://i.ibb.co/20wwmg12/yourlogo.jpg" class="logo">
 
 <h2>SAG & SK</h2>
-<p style="color:green;">✔ Pronosticador verificado</p>
+<div class="verify">✔ Pronosticador verificado</div>
 
 <h3>Resumen de compra</h3>
-<p><b>Combinada del día</b></p>
-<p><b>$ 5000 ARS</b></p>
 
-<div class="method" onclick="mercado()">
-<img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo-6.png" width="120">
+<div class="resumen">
+<span>Combinada del día</span>
+<span>$ 5000 ARS</span>
 </div>
 
+<!-- MÉTODO MERCADOPAGO -->
+<div class="method" onclick="pagarMP()">
+<img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo.png" width="120">
+<p>Pagar con MercadoPago</p>
+</div>
+
+<!-- MÉTODO TARJETA -->
 <div class="method" onclick="mostrarTarjeta()">
-<img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" width="70">
-<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" width="70">
+<img src="https://logodownload.org/wp-content/uploads/2014/09/visa-logo-1.png" width="60">
+<img src="https://logodownload.org/wp-content/uploads/2014/09/mastercard-logo-1.png" width="60">
+<p>Pagar con tarjeta débito o crédito</p>
 </div>
 
-<div id="cardForm" style="display:none; margin-top:20px;">
-<form id="form-checkout">
-<div id="form-checkout__cardNumber"></div>
-<div id="form-checkout__expirationDate"></div>
-<div id="form-checkout__securityCode"></div>
-<input type="email" id="form-checkout__cardholderEmail" placeholder="Email" />
-<select id="form-checkout__installments"></select>
-<button type="submit">Confirmar Pago</button>
+<!-- FORMULARIO TARJETA -->
+<form id="card-form">
+<input type="text" placeholder="Nombre completo">
+<input type="text" placeholder="Número de tarjeta">
+<input type="text" placeholder="MM/AA">
+<input type="text" placeholder="CVC">
+<button type="button" class="btn" onclick="pagarMP()">Confirmar pago</button>
 </form>
-</div>
 
 </div>
 
 <script>
-const mp = new MercadoPago("APP_USR-afc13ecc-e106-4c83-9b96-6df76a8e2c8e", { locale: "es-AR" });
-
-function mercado(){
-fetch("/create_preference", { method:"POST" })
-.then(res => res.json())
-.then(data => {
-mp.checkout({
-preference: { id: data.id },
-autoOpen: true
-});
-});
-}
+const mp = new MercadoPago("APP_USR-afc13ecc-e106-4c83-9b96-6df76a8e2c8e");
 
 function mostrarTarjeta(){
-document.getElementById("cardForm").style.display="block";
+  document.getElementById("card-form").style.display="block";
 }
 
-const cardForm = mp.cardForm({
-amount: "5000",
-autoMount: true,
-form: {
-id: "form-checkout",
-cardNumber: { id: "form-checkout__cardNumber" },
-expirationDate: { id: "form-checkout__expirationDate" },
-securityCode: { id: "form-checkout__securityCode" },
-cardholderEmail: { id: "form-checkout__cardholderEmail" },
-installments: { id: "form-checkout__installments" }
-},
-callbacks: {
-onSubmit: event => {
-event.preventDefault();
+async function pagarMP(){
+  const response = await fetch("/crear-preferencia",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+  });
 
-const data = cardForm.getCardFormData();
+  const data = await response.json();
 
-fetch("/process_payment", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-token: data.token,
-installments: data.installments,
-payment_method_id: data.paymentMethodId,
-transaction_amount: Number(data.amount),
-payer: { email: data.cardholderEmail }
-})
-})
-.then(res => res.json())
-.then(response => {
-if(response.status === "approved"){
-alert("Pago aprobado");
-}else{
-alert("Pago rechazado");
+  mp.checkout({
+    preference:{
+      id:data.id
+    },
+    autoOpen:true
+  });
 }
-});
-}
-}
-});
 </script>
 
 </body>

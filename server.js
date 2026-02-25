@@ -1,49 +1,59 @@
 const express = require("express");
 const path = require("path");
-const { MercadoPagoConfig, Preference } = require("mercadopago");
+const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 
 const app = express();
 app.use(express.json());
-
-// 📁 Servir archivos estáticos (index.html)
 app.use(express.static(path.join(__dirname)));
 
-// 🔐 MercadoPago SDK v2
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN,
 });
 
 const preference = new Preference(client);
+const payment = new Payment(client);
 
-// 💳 Crear preferencia
 app.post("/crear-preferencia", async (req, res) => {
-  try {
+  const body = {
+    items: [{
+      title: "Combinada del día",
+      quantity: 1,
+      unit_price: 5000,
+      currency_id: "ARS"
+    }]
+  };
+
+  const result = await preference.create({ body });
+  res.json({ id: result.id });
+});
+
+app.post("/procesar-pago", async (req, res) => {
+  try{
     const body = {
-      items: [
-        {
-          title: "Combinada del día",
-          quantity: 1,
-          unit_price: 2,
-          currency_id: "ARS",
-        },
-      ],
+      transaction_amount: Number(req.body.amount),
+      token: req.body.token,
+      description: "Combinada del día",
+      installments: Number(req.body.installments),
+      payment_method_id: req.body.paymentMethodId,
+      issuer_id: req.body.issuerId,
+      payer: {
+        email: "test@test.com",
+        identification: {
+          type: req.body.identificationType,
+          number: req.body.identificationNumber,
+        }
+      }
     };
 
-    const result = await preference.create({ body });
+    const result = await payment.create({ body });
+    res.json({ status: result.status });
 
-    res.json({
-      id: result.id,
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      error: "Error creando preferencia",
-    });
+  }catch(error){
+    console.log(error);
+    res.status(500).json({ error:"Error en pago" });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Servidor corriendo en puerto " + PORT);
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Servidor funcionando");
 });

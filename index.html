@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAG & SK - Payment</title>
+
+<style>
+body{
+    background:#f3f4f6;
+    font-family: Arial, Helvetica, sans-serif;
+    display:flex;
+    justify-content:center;
+    padding:20px;
+}
+
+.card{
+    background:white;
+    width:100%;
+    max-width:420px;
+    border-radius:20px;
+    padding:25px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
+}
+
+.logo{
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    display:block;
+    margin:0 auto 10px auto;
+    object-fit:cover;
+}
+
+.title{
+    text-align:center;
+    font-size:26px;
+    font-weight:bold;
+}
+
+.verified{
+    text-align:center;
+    color:green;
+    font-weight:600;
+    margin-bottom:20px;
+}
+
+.total-box{
+    background:#f0f2f5;
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:space-between;
+    font-weight:bold;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(90deg,#5f5fff,#7c6cff);
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<img src="https://i.ibb.co/20wwmg12/imagen.jpg" class="logo">
+
+<div class="title">SAG & SK</div>
+<div class="verified">✔ Pronosticador verificado</div>
+
+<div class="total-box">
+    <div>Total</div>
+    <div>$ 5000 ARS</div>
+</div>
+
+<button onclick="pagar()">Pagar ahora</button>
+
+</div>
+
+<script>
+async function pagar(){
+    const res = await fetch("/crear-preferencia",{
+        method:"POST"
+    });
+
+    const data = await res.json();
+    window.location.href = data.init_point;
+}
+</script>
+
+</body>
+</html>

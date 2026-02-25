@@ -1,101 +1,48 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAG & SK - Payment</title>
 
+<script src="https://sdk.mercadopago.com/js/v2"></script>
+
 <style>
 body{
-    background:#f3f4f6;
-    font-family: Arial, Helvetica, sans-serif;
-    display:flex;
-    justify-content:center;
-    padding:20px;
+  background:#f3f4f6;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  padding:20px;
 }
-
 .card{
-    background:white;
-    width:100%;
-    max-width:430px;
-    border-radius:20px;
-    padding:25px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.08);
+  background:white;
+  max-width:420px;
+  width:100%;
+  border-radius:20px;
+  padding:30px;
+  text-align:center;
 }
-
 .logo{
-    width:95px;
-    height:95px;
-    border-radius:50%;
-    display:block;
-    margin:0 auto 10px auto;
-    object-fit:cover;
+  width:120px;
+  border-radius:50%;
 }
-
-.title{
-    text-align:center;
-    font-size:26px;
-    font-weight:bold;
-}
-
-.verified{
-    text-align:center;
-    color:green;
-    font-weight:600;
-    margin-bottom:20px;
-}
-
-.summary{
-    margin-top:20px;
-    margin-bottom:15px;
-    font-weight:bold;
-}
-
-.total-box{
-    background:#f1f3f5;
-    padding:15px;
-    border-radius:12px;
-    margin-bottom:20px;
-    display:flex;
-    justify-content:space-between;
-    font-weight:bold;
-}
-
-.methods{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-    margin-bottom:20px;
-}
-
 .method{
-    background:#f8f9fa;
-    padding:12px;
-    border-radius:12px;
-    text-align:center;
-    cursor:pointer;
-    border:2px solid transparent;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:15px;
+  margin-top:15px;
+  cursor:pointer;
 }
-
-.method:hover{
-    border:2px solid #6c63ff;
-}
-
-.method img{
-    max-width:100%;
-    max-height:40px;
-}
-
 button{
-    width:100%;
-    padding:16px;
-    border:none;
-    border-radius:14px;
-    background:linear-gradient(90deg,#5f5fff,#7c6cff);
-    color:white;
-    font-size:18px;
-    font-weight:bold;
-    cursor:pointer;
+  margin-top:20px;
+  width:100%;
+  padding:15px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(90deg,#5f6cff,#8a63ff);
+  color:white;
+  font-size:16px;
 }
 </style>
 </head>
@@ -104,57 +51,94 @@ button{
 
 <div class="card">
 
-<img src="https://i.ibb.co/20wwmg12/imagen.jpg" class="logo">
+<img src="https://i.ibb.co/20wwmg12/tu-logo.png" class="logo">
 
-<div class="title">SAG & SK</div>
-<div class="verified">✔ Pronosticador verificado</div>
+<h2>SAG & SK</h2>
+<p style="color:green;">✔ Pronosticador verificado</p>
 
-<div class="summary">Resumen de compra</div>
+<h3>Resumen de compra</h3>
+<p><b>Combinada del día</b></p>
+<p><b>$ 5000 ARS</b></p>
 
-<div class="total-box">
-    <div>Combinada del día</div>
-    <div>$ 5000 ARS</div>
+<div class="method" onclick="mercado()">
+<img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo-6.png" width="120">
 </div>
 
-<div class="methods">
-    <div class="method" onclick="pagar()">
-        <img src="https://logodownload.org/wp-content/uploads/2019/08/mercado-pago-logo.png">
-    </div>
-
-    <div class="method" onclick="pagar()">
-        <img src="https://logodownload.org/wp-content/uploads/2014/04/visa-logo-1.png">
-    </div>
-
-    <div class="method" onclick="pagar()">
-        <img src="https://logodownload.org/wp-content/uploads/2014/04/mastercard-logo.png">
-    </div>
-
-    <div class="method" onclick="pagar()">
-        <img src="https://logodownload.org/wp-content/uploads/2019/10/google-pay-logo.png">
-    </div>
-
-    <div class="method" onclick="pagar()">
-        <img src="https://logodownload.org/wp-content/uploads/2018/09/apple-pay-logo.png">
-    </div>
-
-    <div class="method" onclick="pagar()">
-        <img src="https://logodownload.org/wp-content/uploads/2019/11/pagofacil-logo.png">
-    </div>
+<div class="method" onclick="mostrarTarjeta()">
+<img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" width="70">
+<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" width="70">
 </div>
 
-<button onclick="pagar()">Pagar ahora</button>
+<div id="cardForm" style="display:none; margin-top:20px;">
+<form id="form-checkout">
+<div id="form-checkout__cardNumber"></div>
+<div id="form-checkout__expirationDate"></div>
+<div id="form-checkout__securityCode"></div>
+<input type="email" id="form-checkout__cardholderEmail" placeholder="Email" />
+<select id="form-checkout__installments"></select>
+<button type="submit">Confirmar Pago</button>
+</form>
+</div>
 
 </div>
 
 <script>
-async function pagar(){
-    const res = await fetch("/crear-preferencia",{
-        method:"POST"
-    });
+const mp = new MercadoPago("APP_USR-afc13ecc-e106-4c83-9b96-6df76a8e2c8e", { locale: "es-AR" });
 
-    const data = await res.json();
-    window.location.href = data.init_point;
+function mercado(){
+fetch("/create_preference", { method:"POST" })
+.then(res => res.json())
+.then(data => {
+mp.checkout({
+preference: { id: data.id },
+autoOpen: true
+});
+});
 }
+
+function mostrarTarjeta(){
+document.getElementById("cardForm").style.display="block";
+}
+
+const cardForm = mp.cardForm({
+amount: "5000",
+autoMount: true,
+form: {
+id: "form-checkout",
+cardNumber: { id: "form-checkout__cardNumber" },
+expirationDate: { id: "form-checkout__expirationDate" },
+securityCode: { id: "form-checkout__securityCode" },
+cardholderEmail: { id: "form-checkout__cardholderEmail" },
+installments: { id: "form-checkout__installments" }
+},
+callbacks: {
+onSubmit: event => {
+event.preventDefault();
+
+const data = cardForm.getCardFormData();
+
+fetch("/process_payment", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({
+token: data.token,
+installments: data.installments,
+payment_method_id: data.paymentMethodId,
+transaction_amount: Number(data.amount),
+payer: { email: data.cardholderEmail }
+})
+})
+.then(res => res.json())
+.then(response => {
+if(response.status === "approved"){
+alert("Pago aprobado");
+}else{
+alert("Pago rechazado");
+}
+});
+}
+}
+});
 </script>
 
 </body>

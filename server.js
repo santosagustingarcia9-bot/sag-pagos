@@ -1,19 +1,17 @@
 const express = require("express");
-const path = require("path");
 const axios = require("axios");
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ===============================
-// CONFIG MERCADOPAGO
-// ===============================
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const MP_PUBLIC_KEY = process.env.MP_PUBLIC_KEY;
 
-// ===============================
-// PAGINA PRINCIPAL
-// ===============================
+app.get("/config", (req, res) => {
+  res.json({ publicKey: MP_PUBLIC_KEY });
+});
+
 app.get("/", (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -22,11 +20,12 @@ app.get("/", (req, res) => {
 <meta charset="UTF-8">
 <title>SAG & SK - Payment</title>
 <script src="https://sdk.mercadopago.com/js/v2"></script>
+
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
-  background:#f3f3f3;
+  font-family:Arial;
+  background:#f4f4f4;
   display:flex;
   justify-content:center;
   padding:20px;
@@ -37,22 +36,26 @@ body{
   background:white;
   border-radius:20px;
   padding:30px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+  box-shadow:0 10px 40px rgba(0,0,0,0.1);
 }
 .logo{
   text-align:center;
 }
 .logo img{
-  width:120px;
+  width:110px;
   border-radius:50%;
 }
 h1{
   text-align:center;
-  margin:10px 0 0;
+  margin:10px 0 5px;
 }
 .verified{
   text-align:center;
-  color:green;
+  color:#1a8f2e;
+  font-weight:bold;
+  margin-bottom:20px;
+}
+.summary{
   margin-bottom:20px;
 }
 .total{
@@ -62,19 +65,28 @@ h1{
   display:flex;
   justify-content:space-between;
   font-weight:bold;
-  margin-bottom:20px;
 }
-#paymentBrick_container{
-  margin-top:20px;
+.logos{
+  margin-top:15px;
+  text-align:center;
+}
+.logos img{
+  height:25px;
+  margin:0 5px;
 }
 .success{
-  text-align:center;
   color:green;
-  font-weight:bold;
-  margin-top:20px;
+  text-align:center;
+  margin-top:15px;
+}
+.error{
+  color:red;
+  text-align:center;
+  margin-top:15px;
 }
 </style>
 </head>
+
 <body>
 
 <div class="card">
@@ -84,37 +96,46 @@ h1{
 </div>
 
 <h1>SAG & SK</h1>
-<div class="verified">Pronosticador verificado</div>
+<div class="verified">✔ Pronosticador verificado</div>
 
+<div class="summary">
+<h3>Resumen de compra</h3>
 <div class="total">
-<span>Total</span>
+<span>Stake 10 + Combinada</span>
 <span>$ 5000 ARS</span>
+</div>
 </div>
 
 <div id="paymentBrick_container"></div>
+
+<div class="logos">
+<img src="https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/5.21.8/mercadopago/logo__large_plus.png">
+<img src="https://img.icons8.com/color/48/visa.png">
+<img src="https://img.icons8.com/color/48/mastercard.png">
+<img src="https://img.icons8.com/color/48/amex.png">
+</div>
+
 <div id="result"></div>
 
 </div>
 
 <script>
-const mp = new MercadoPago("${process.env.MP_PUBLIC_KEY}", {
-  locale: "es-AR"
-});
 
-mp.bricks().create("payment", "paymentBrick_container", {
-  initialization: {
-    amount: 5000
-  },
-  customization: {
-    visual: {
-      style: {
-        theme: "default"
-      }
-    }
-  },
-  callbacks: {
-    onSubmit: async (cardData) => {
-      try {
+async function initPayment() {
+
+  const config = await fetch("/config").then(r => r.json());
+
+  const mp = new MercadoPago(config.publicKey, {
+    locale: "es-AR"
+  });
+
+  mp.bricks().create("payment", "paymentBrick_container", {
+    initialization: {
+      amount: 5000
+    },
+    callbacks: {
+      onSubmit: async (cardData) => {
+
         const response = await fetch("/process_payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -125,19 +146,18 @@ mp.bricks().create("payment", "paymentBrick_container", {
 
         if(result.status === "approved"){
           document.getElementById("result").innerHTML =
-            "<div class='success'>Pago aprobado correctamente</div>";
+          "<div class='success'>Pago aprobado correctamente</div>";
         } else {
           document.getElementById("result").innerHTML =
-            "<div style='color:red;text-align:center;'>Pago rechazado</div>";
+          "<div class='error'>Pago rechazado</div>";
         }
-
-      } catch (error) {
-        document.getElementById("result").innerHTML =
-          "<div style='color:red;text-align:center;'>Error procesando pago</div>";
       }
     }
-  }
-});
+  });
+}
+
+initPayment();
+
 </script>
 
 </body>
@@ -145,9 +165,6 @@ mp.bricks().create("payment", "paymentBrick_container", {
 `);
 });
 
-// ===============================
-// PROCESAR PAGO REAL
-// ===============================
 app.post("/process_payment", async (req, res) => {
 
   try {
@@ -169,7 +186,7 @@ app.post("/process_payment", async (req, res) => {
       payment_data,
       {
         headers: {
-          Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+          Authorization: \`Bearer \${MP_ACCESS_TOKEN}\`,
           "Content-Type": "application/json"
         }
       }
@@ -183,5 +200,4 @@ app.post("/process_payment", async (req, res) => {
 
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor funcionando"));
+app.listen(process.env.PORT || 3000);

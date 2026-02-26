@@ -1,163 +1,122 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SAG & SK - Payment</title>
-
-<style>
-body{
-  background:#f3f4f6;
-  font-family: Arial, Helvetica, sans-serif;
-  display:flex;
-  justify-content:center;
-  padding:20px;
-}
-
-.card{
-  background:white;
-  max-width:420px;
-  width:100%;
-  padding:25px;
-  border-radius:20px;
-  box-shadow:0 5px 20px rgba(0,0,0,0.1);
-  text-align:center;
-}
-
-.card img.logo{
-  width:120px;
-  border-radius:50%;
-}
-
-.verify{
-  color:green;
-  font-weight:600;
-  margin-bottom:20px;
-}
-
-.resumen{
-  background:#eee;
-  padding:15px;
-  border-radius:12px;
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:20px;
-  font-weight:600;
-}
-
-.method{
-  border:2px solid #eee;
-  border-radius:15px;
-  padding:15px;
-  margin-bottom:15px;
-  cursor:pointer;
-  transition:0.2s;
-}
-
-.method:hover{
-  border-color:#6c63ff;
-}
-
-.method img{
-  height:40px;
-  margin:5px;
-}
-
-.btn{
-  background:linear-gradient(90deg,#6c63ff,#7c4dff);
-  border:none;
-  color:white;
-  padding:15px;
-  width:100%;
-  border-radius:12px;
-  font-size:16px;
-  margin-top:15px;
-  cursor:pointer;
-}
-
-#card-form-container{
-  display:none;
-  margin-top:20px;
-}
-
-input, select{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:8px;
-  border:1px solid #ddd;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>SAG & SK - Payment</title>
+  <script src="https://sdk.mercadopago.com/js/v2"></script>
+  <style>
+    body{
+      font-family: Arial;
+      background:#f4f4f4;
+      display:flex;
+      justify-content:center;
+      padding:20px;
+    }
+    .card{
+      background:white;
+      padding:20px;
+      border-radius:12px;
+      width:100%;
+      max-width:400px;
+      box-shadow:0 5px 20px rgba(0,0,0,0.1);
+    }
+    .btn{
+      width:100%;
+      padding:14px;
+      background:linear-gradient(90deg,#6a5cff,#8f6bff);
+      color:white;
+      border:none;
+      border-radius:8px;
+      font-weight:bold;
+      cursor:pointer;
+      margin-top:10px;
+    }
+    .resumen{
+      background:#eee;
+      padding:10px;
+      border-radius:8px;
+      margin-bottom:20px;
+      display:flex;
+      justify-content:space-between;
+    }
+    input{
+      width:100%;
+      padding:10px;
+      margin:5px 0;
+      border-radius:6px;
+      border:1px solid #ccc;
+    }
+  </style>
 </head>
-
 <body>
 
 <div class="card">
 
-<img class="logo" src="https://i.ibb.co/20wwmg12/yourlogo.jpg">
+  <h2>SAG & SK</h2>
+  <h3>Resumen de compra</h3>
 
-<h2>SAG & SK</h2>
-<div class="verify">✔ Pronosticador verificado</div>
+  <div class="resumen">
+    <span>Combinada del día</span>
+    <span>$ 5000 ARS</span>
+  </div>
 
-<h3>Resumen de compra</h3>
+  <!-- BOTÓN MERCADOPAGO -->
+  <button class="btn" onclick="pagarMP()">Pagar con MercadoPago</button>
 
-<div class="resumen">
-<span>Combinada del día</span>
-<span>$ 5000 ARS</span>
-</div>
+  <hr><br>
 
-<!-- MERCADO PAGO -->
-<div class="method" onclick="pagarMP()">
-<img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo.png">
-<p>Pagar con MercadoPago</p>
-</div>
+  <!-- CARD FORM -->
+  <form id="form-checkout">
 
-<!-- TARJETAS -->
-<div class="method" onclick="mostrarTarjeta()">
-<img src="https://img.icons8.com/color/96/visa.png">
-<img src="https://img.icons8.com/color/96/mastercard.png">
-<img src="https://img.icons8.com/color/96/amex.png">
-<p>Pagar con tarjeta débito o crédito</p>
-</div>
+    <div id="form-checkout__cardNumber"></div>
+    <div id="form-checkout__expirationDate"></div>
+    <div id="form-checkout__securityCode"></div>
 
-<!-- CARD FORM -->
-<div id="card-form-container">
-<form id="form-checkout">
-<div id="form-checkout__cardNumber"></div>
-<div id="form-checkout__expirationDate"></div>
-<div id="form-checkout__securityCode"></div>
+    <input type="text" id="form-checkout__cardholderName" placeholder="Nombre completo" />
 
-<input type="text" id="form-checkout__cardholderName" placeholder="Nombre completo" />
-<select id="form-checkout__issuer"></select>
-<select id="form-checkout__installments"></select>
-<select id="form-checkout__identificationType"></select>
-<input type="text" id="form-checkout__identificationNumber" placeholder="DNI" />
-<input type="email" id="form-checkout__email" placeholder="Email" />
+    <select id="form-checkout__issuer"></select>
 
-<button type="submit" class="btn">Confirmar pago</button>
-</form>
-</div>
+    <select id="form-checkout__installments"></select>
+
+    <select id="form-checkout__identificationType"></select>
+
+    <input type="text" id="form-checkout__identificationNumber" placeholder="DNI" />
+
+    <input type="email" id="form-checkout__email" placeholder="Email" />
+
+    <button type="submit" class="btn">Confirmar pago</button>
+
+  </form>
 
 </div>
-
-<script src="https://sdk.mercadopago.com/js/v2"></script>
 
 <script>
+const mp = new MercadoPago("APP_USR-afc13ecc-e106-4c83-9b96-6df76a8e2c8e", {
+  locale: "es-AR"
+});
 
-function mostrarTarjeta(){
-  document.getElementById("card-form-container").style.display="block";
-}
+// ====================
+// BOTÓN CHECKOUT MP
+// ====================
+async function pagarMP() {
 
-async function pagarMP(){
-  const response = await fetch("/crear-preferencia",{
-    method:"POST"
+  const response = await fetch("/crear-preferencia", {
+    method: "POST"
   });
+
   const data = await response.json();
-  window.location.href = "https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=" + data.id;
+
+  mp.checkout({
+    preference: {
+      id: data.id
+    },
+    autoOpen: true
+  });
 }
 
-const mp = new MercadoPago("APP_USR-afc13ecc-e106-4c83-9b96-6df76a8e2c8e");
-
+// ====================
+// CARD FORM OFICIAL
+// ====================
 const cardForm = mp.cardForm({
   amount: "5000",
   autoMount: true,
@@ -171,34 +130,46 @@ const cardForm = mp.cardForm({
     installments: { id: "form-checkout__installments" },
     identificationType: { id: "form-checkout__identificationType" },
     identificationNumber: { id: "form-checkout__identificationNumber" },
-    cardholderEmail: { id: "form-checkout__email" },
+    cardholderEmail: { id: "form-checkout__email" }
   },
   callbacks: {
     onSubmit: async (event) => {
       event.preventDefault();
 
-      const data = cardForm.getCardFormData();
+      const {
+        paymentMethodId,
+        issuerId,
+        token,
+        installments,
+        identificationType,
+        identificationNumber,
+        cardholderEmail
+      } = cardForm.getCardFormData();
 
-      const response = await fetch("/procesar-pago",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
+      const response = await fetch("/procesar-pago", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token:data.token,
-          issuerId:data.issuerId,
-          paymentMethodId:data.paymentMethodId,
-          installments:data.installments,
-          identificationNumber:data.identificationNumber,
-          identificationType:data.identificationType,
-          amount:5000
+          token,
+          installments,
+          paymentMethodId,
+          issuerId,
+          email: cardholderEmail,
+          identificationType,
+          identificationNumber
         })
       });
 
       const result = await response.json();
-      alert("Estado del pago: " + result.status);
+
+      if(result.status === "approved"){
+        alert("✅ Pago aprobado");
+      }else{
+        alert("❌ Pago rechazado: " + result.status_detail);
+      }
     }
   }
 });
-
 </script>
 
 </body>

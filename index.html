@@ -114,11 +114,16 @@ input{
 
 </div>
 
-<script>
-const mp = new MercadoPago("APP_USR-afc13ecc-e106-4c83-9b96-6df76a8e2c8e");
+<script src="https://sdk.mercadopago.com/js/v2"></script>
 
+<script>
+const mp = new MercadoPago("TU_PUBLIC_KEY_AQUI");
+
+// =======================
+// MERCADOPAGO REDIRECT
+// =======================
 async function pagarMP(){
-  const response = await fetch("/crear-preferencia",{method:"POST"});
+  const response = await fetch("/crear-preferencia",{ method:"POST" });
   const data = await response.json();
 
   mp.checkout({
@@ -127,28 +132,51 @@ async function pagarMP(){
   });
 }
 
+// =======================
+// VALIDACIONES VISUALES
+// =======================
+
 // Solo números tarjeta
-document.getElementById("cardNumber").addEventListener("input",function(e){
-  this.value = this.value.replace(/\D/g,'');
+document.getElementById("cardNumber").addEventListener("input", function(){
+  this.value = this.value.replace(/\D/g,'').slice(0,16);
 });
 
 // Fecha automática MM/AA
-document.getElementById("expiry").addEventListener("input",function(e){
+document.getElementById("expiry").addEventListener("input", function(){
   this.value = this.value.replace(/\D/g,'');
   if(this.value.length >= 3){
     this.value = this.value.slice(0,2) + "/" + this.value.slice(2,4);
   }
+  this.value = this.value.slice(0,5);
 });
 
 // Solo números CVV
-document.getElementById("cvv").addEventListener("input",function(e){
-  this.value = this.value.replace(/\D/g,'');
+document.getElementById("cvv").addEventListener("input", function(){
+  this.value = this.value.replace(/\D/g,'').slice(0,4);
 });
 
-// Enviar pago
+// =======================
+// ENVIAR TARJETA REAL
+// =======================
 document.getElementById("card-form").addEventListener("submit", async function(e){
   e.preventDefault();
-  alert("Para usar tarjeta real necesitás CardForm oficial.");
+
+  const response = await fetch("/procesar-pago", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      amount: 5000,
+      token: "TEST-TOKEN", // ⚠ aquí luego se conecta con cardForm oficial
+      installments: 1,
+      paymentMethodId: "visa",
+      issuerId: null,
+      identificationType: "DNI",
+      identificationNumber: "12345678"
+    })
+  });
+
+  const data = await response.json();
+  alert("Estado del pago: " + data.status);
 });
 </script>
 
